@@ -4,7 +4,11 @@ import storage
 import guess
 import os
 import audiotools
-import appscript
+try:
+    import appscript
+    has_appscript = True
+except:
+    has_appscript = False
 
 def test_directory(d):
     store = storage.HashStore()
@@ -22,8 +26,9 @@ def test_directory(d):
 def main():
     #audio_dir = raw_input("Enter audio directory: ")
     #test_directory(audio_dir)
-    itunes = appscript.app('iTunes')
-    library = itunes.playlists['Library']
+    if has_appscript:
+        itunes = appscript.app('iTunes')
+        library = itunes.playlists['Library']
 
 
     while True:
@@ -44,10 +49,12 @@ def main():
             seconds = time % 60
             print "%d:%d into song" % (minutes, seconds)
             print ""
-            itunes_track = library.search(for_=song.track_name + ' ' + song.artist)
-            if len(itunes_track) > 0:
-                itunes.play(itunes_track[0], once=True)
-                itunes.player_position.set(time + 0.05)
+
+            if has_appscript:
+                itunes_track = library.search(for_=song.track_name + ' ' + song.artist)
+                if len(itunes_track) > 0:
+                    itunes.play(itunes_track[0], once=True)
+                    itunes.player_position.set(time + 0.05)
 
 
 if __name__ == '__main__':
