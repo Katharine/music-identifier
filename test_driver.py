@@ -19,8 +19,11 @@ def main():
         inp = raw_input("Press return to start listening. Type 'quit' when you're bored.")
         if inp == 'quit':
             break
-
-        song, time = guess.identify_from_mic()
+        try:
+            song, time = guess.identify_from_mic()
+        except IOError:
+            print "Mic input failed."
+            continue
         if song is None:
             print "Sorry, no idea."
         else:
