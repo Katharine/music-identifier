@@ -15,8 +15,12 @@ class Song(object):
 
         # Deal with the metadata
         metadata = stream.get_metadata()
-        track_name = metadata.track_name if metadata.track_name is not None else filename
-        artist = metadata.artist_name
+        if metadata is not None:
+            track_name = metadata.track_name if metadata.track_name is not None else filename
+            artist = metadata.artist_name
+        else:
+            track_name = filename
+            artist = None
 
         song = self(track_name, artist)
 

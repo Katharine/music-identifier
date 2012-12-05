@@ -1,23 +1,35 @@
 import identifier
+import sqlite3
+from collections import namedtuple
 
-HashTable = {}
-Songs = []
+ChunkHash = namedtuple('ChunkHash', ('time', 'hash', 'song_id'))
 
-def store_file(filename):
-    s = identifier.Song.from_file(filename)
+class HashStore(object):
+    def __init__(self):
+        self.conn = sqlite3.connect('music.db')
 
-    # This should involve a database.
-    song_id = len(Songs)
-    Songs.append(s)
-    for chunk in s.chunks:
-        chunk.song_id = song_id # Sad hack to force some sort of back-reference into our Songs table.
-        HashTable.setdefault(chunk.hash(), []).append(chunk)
+    def store_file(self, filename):
+        s = identifier.Song.from_file(filename)
 
-# Should also involve a database
-def get_chunks(h):
-    return HashTable.get(h)
+        # This should involve a database.
+        c = self.conn.cursor()
+        c.execute("INSERT INTO songs (track_name, artist) VALUES (?, ?)", (s.track_name, s.artist))
+        song_id = c.lastrowid
+        c.executemany("INSERT INTO song_chunks (time, hash, song_id) VALUES (?, ?, ?)", [(x.time, x.hash(), song_id) for x in s.chunks])
+        self.conn.commit()
 
-def get_song(i):
-    return Songs[i]
+    # Should also involve a database
+    def get_chunks(self, h):
+        c = self.conn.cursor()
+        chunks = []
+        for row in c.execute("SELECT time, hash, song_id FROM song_chunks WHERE hash = ?", (h,)):
+            chunks.append(ChunkHash(time=row[0], hash=row[1], song_id=row[2]))
+        return chunks
 
-
+    def get_song(self, i):
+        c = self.conn.cursor()
+        c.execute("SELECT track_name, artist FROM songs WHERE rowid = ?", (i,))
+        data = c.fetchone()
+        if data is None:
+            return None
+        return identifier.Song(data[0], data[1])
