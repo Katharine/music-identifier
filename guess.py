@@ -23,6 +23,10 @@ class ProcessData(threading.Thread):
     def run(self):
         self.data = storage.HashStore()
 
+
+        # Dict of chunk_chains, given as {song_id: [song_id, last_offset, song_time, chain_length]}
+        # Each entry represents a chain of matching points we've found from our incoming mic
+        # data. The longer the chain, the more convincing the match.
         chunk_chains = {}
         longest_chain = 0
         best_guess = None
@@ -39,10 +43,8 @@ class ProcessData(threading.Thread):
 
                 # Iterate over each chunk we got that matches our hash.
                 # For each of those chunks, compare against our 'chunk chains'.
-                # If it's both the same song and the time offset matches, update that
+                # If it's the same song and the time offset matches, update that
                 # 'chain' with its new length and offset information.
-                # Note: this algorithm is O(n^2).
-                # I think it could be reduced to at least O(n log n) without much work, but I'm lazy.
                 for new in chunks:
                     handled = False
                     for chain in chunk_chains.get(new.song_id, []):
@@ -61,7 +63,8 @@ class ProcessData(threading.Thread):
                     # If we didn't manage to add this to a chain, create a new entry in the list.
                     if not handled:
                         chunk_chains.setdefault(new.song_id,[]).append([new.song_id, t, new.time, 1])
-            time.sleep(0)
+            
+            time.sleep(0) # Make sure we aren't hogging the GIL and blocking the mic read.
 
             for chain_song in chunk_chains:
                 for chain in chunk_chains[chain_song]:
@@ -79,10 +82,6 @@ def identify_from_mic():
     stream = p.open(format=pyaudio.paInt16, channels=1, rate=44100, input=True, frames_per_buffer=4096)
 
     time = 0.0
-
-    # List of chunk_chains, given as [song_id, last_offset, song_time, chain_length]
-    # Each entry represents a chain of matching points we've found from our incoming mic
-    # data. The longer the chain, the more convincing the match/.
 
     worker = ProcessData()
     worker.start()
