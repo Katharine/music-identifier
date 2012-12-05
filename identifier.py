@@ -44,7 +44,7 @@ class Song(object):
 
 
 class AudioChunk(object):
-    fuzz = 4
+    fuzz = 2
 
     @classmethod
     def from_bytes(self, time, b):
