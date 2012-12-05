@@ -55,4 +55,4 @@ def identify_from_mic():
 
         time += (4096/44100.0)
 
-    return None
+    return None, None
