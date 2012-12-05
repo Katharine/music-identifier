@@ -22,9 +22,13 @@ class ProcessData(threading.Thread):
 
     def run(self):
         self.data = storage.HashStore()
-        chunk_chains = []
+
+        chunk_chains = {}
+        longest_chain = 0
+        best_guess = None
         while not self.abandoned or not self.queue.empty():
-            print self.queue.qsize()
+            if self.queue.qsize() > 20:
+                print "Large backlog: %d" % self.queue.qsize()
             t, data = self.queue.get()
 
             c = identifier.AudioChunk.from_bytes(t, data)
@@ -41,28 +45,32 @@ class ProcessData(threading.Thread):
                 # I think it could be reduced to at least O(n log n) without much work, but I'm lazy.
                 for new in chunks:
                     handled = False
-                    for chain in chunk_chains:
-                        if chain[0] != new.song_id:
-                            continue
+                    for chain in chunk_chains.get(new.song_id, []):
                         if abs((t - chain[1]) - (new.time - chain[2])) < 0.1:
                             chain[1] = t
                             chain[2] = new.time
                             chain[3] += 1
+                            if chain[3] > longest_chain:
+                                longest_chain = chain[3]
+                                best_guess = chain[0]
+                                print "Current best (of %d partial matches): %d chain, %d - %s" % (len(chunk_chains), longest_chain, best_guess, self.data.get_song(chain[0]).track_name)
 
                             handled = True
                             break
 
                     # If we didn't manage to add this to a chain, create a new entry in the list.
                     if not handled:
-                        chunk_chains.append([new.song_id, t, new.time, 1])
-            time.sleep(0)       
-            for chain in chunk_chains:
-                # If we have a chain with over twenty matches, call it a win and bail out.
-                if chain[3] >= 20:
-                    print "song %d" % chain[0]
-                    song = self.data.get_song(chain[0])
-                    self.output = (song, chain[2])
-                    return
+                        chunk_chains.setdefault(new.song_id,[]).append([new.song_id, t, new.time, 1])
+            time.sleep(0)
+
+            for chain_song in chunk_chains:
+                for chain in chunk_chains[chain_song]:
+                    # If we have a chain with over twenty matches, call it a win and bail out.
+                    if chain[3] >= 20:
+                        print "song %d" % chain[0]
+                        song = self.data.get_song(chain[0])
+                        self.output = (song, chain[2])
+                        return
 
 def identify_from_mic():
     p = pyaudio.PyAudio()
