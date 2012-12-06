@@ -48,7 +48,7 @@ class ProcessData(threading.Thread):
                 for new in chunks:
                     handled = False
                     for chain in chunk_chains.get(new.song_id, []):
-                        if abs((t - chain[1]) - (new.time - chain[2])) < 0.1:
+                        if abs((t - chain[1]) - (new.time - chain[2])) < 0.07:
                             chain[1] = t
                             chain[2] = new.time
                             chain[3] += 1
@@ -69,7 +69,7 @@ class ProcessData(threading.Thread):
             for chain_song in chunk_chains:
                 for chain in chunk_chains[chain_song]:
                     # If we have a chain with over twenty matches, call it a win and bail out.
-                    if chain[3] >= 20:
+                    if chain[3] >= 7:
                         print "song %d" % chain[0]
                         song = self.data.get_song(chain[0])
                         self.output = (song, chain[2])
