@@ -1,27 +1,12 @@
 #!/usr/bin/env python
-
 import storage
 import guess
 import os
-import audiotools
 try:
     import appscript
     has_appscript = True
 except:
     has_appscript = False
-
-def test_directory(d):
-    store = storage.HashStore()
-    for root, bar, files in os.walk(d):
-        for filename in files:
-            filename = root + '/' + filename
-            try:
-                store.store_file(filename)
-                print "Stored %s" % filename
-            except audiotools.UnsupportedFile:
-                print "Skipping unsupported file %s" % filename
-            except Exception, e:
-                print e
 
 def main():
     #audio_dir = raw_input("Enter audio directory: ")
@@ -54,7 +39,7 @@ def main():
                 itunes_track = library.search(for_=song.track_name + ' ' + song.artist)
                 if len(itunes_track) > 0:
                     itunes.play(itunes_track[0], once=True)
-                    itunes.player_position.set(time + 0.05)
+                    itunes.player_position.set(time + 0.5)
 
 
 if __name__ == '__main__':
